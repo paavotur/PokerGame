@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "GameEngine.js" as GameEngine
+import "PokerHandEvaluator.js" as PokerHands
 
 App {
     id: root
@@ -16,6 +17,11 @@ App {
     property bool drawAvailable: true
     property int playerDrawCount: 0
     property int computerDrawCount: 0
+
+
+    property string playerHandName: ""
+    property string computerHandName: ""
+    property string winnerText: ""
 
     function dealCards() {
         const result = GameEngine.startHand()
@@ -49,33 +55,53 @@ App {
             return
 
         // Both players draw from the same remaining deck.
-        const playerResult = GameEngine.exchangeCards(
+        const playerNewHandAndRemainingDeck = GameEngine.exchangeCards(
             playerHand, selectedIndices, remainingDeck)
         const computerIndices = GameEngine.randomExchangeIndices()
-        const computerResult = GameEngine.exchangeCards(
-            computerHand, computerIndices, playerResult.remainingDeck)
+        const computerNewHandAndRemainingDeck = GameEngine.exchangeCards(
+            computerHand, computerIndices, playerNewHandAndRemainingDeck.remainingDeck)
 
-        playerHand = playerResult.hand
-        computerHand = computerResult.hand
-        remainingDeck = computerResult.remainingDeck
+        playerHand = playerNewHandAndRemainingDeck.hand
+        computerHand = computerNewHandAndRemainingDeck.hand
+        remainingDeck = computerNewHandAndRemainingDeck.remainingDeck
         playerDrawCount = selectedIndices.length
         computerDrawCount = computerIndices.length
         selectedIndices = []
         drawAvailable = false
+
+
+        // Evaluate both hands
+        const playerResult = PokerHands.evaluateHand(playerHand)
+        const computerResult = PokerHands.evaluateHand(computerHand)
+
+        playerHandName = playerResult.name
+        computerHandName = computerResult.name
+
+        const winner = PokerHands.compareHands(
+            playerHand, computerHand
+        )
+
+        if (winner === 1)
+            winnerText = "YOU WIN!"
+        else if (winner === -1)
+            winnerText = "COMPUTER WINS!"
+        else
+            winnerText = "IT'S A TIE!"
+
     }
 
     Component.onCompleted: dealCards()
 
     Rectangle {
         anchors.fill: parent
-        color: "#darkgree"
+        color: "darkgreen"
 
         ColumnLayout {
             anchors.centerIn: parent
             spacing: 16
 
             Text {
-                text: "OPPONENT"
+                text: "COMPUTER: " +  root.computerHandName
                 color: "white"
                 font.pixelSize: 22
                 Layout.alignment: Qt.AlignHCenter
@@ -90,7 +116,7 @@ App {
                     delegate: PlayingCard {
                         required property var modelData
                         card: modelData
-                        faceUp: false
+                        faceUp: !root.drawAvailable
                         selectable: false
                     }
                 }
@@ -109,6 +135,19 @@ App {
                 font.pixelSize: 25
                 Layout.alignment: Qt.AlignHCenter
             }
+
+
+            Text {
+                text: root.winnerText
+                visible: text !== ""
+
+                color: "yellow"
+                font.pixelSize: 26
+                font.bold: true
+
+                Layout.alignment: Qt.AlignHCenter
+            }
+
 
             Row {
                 spacing: 8
@@ -148,6 +187,16 @@ App {
                 color: "white"
                 Layout.alignment: Qt.AlignHCenter
             }
+
+
+            Text {
+                text: "Player: " + root.playerHandName
+                visible: !root.drawAvailable
+                color: "white"
+                font.pixelSize: 22
+                Layout.alignment: Qt.AlignHCenter
+            }
+
 
             RowLayout {
                 spacing: 16
