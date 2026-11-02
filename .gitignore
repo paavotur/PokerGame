@@ -1,0 +1,9 @@
+build/
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.user
+*.user.*
+CMakeUserPresets.json
+.qtc_clangd/
