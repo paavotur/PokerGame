@@ -1,4 +1,3 @@
-
 import QtQuick
 
 Rectangle {
@@ -6,14 +5,16 @@ Rectangle {
 
     property var card: null
     property bool faceUp: true
+    property bool selected: false
+    property bool selectable: true
+
+    signal clicked()
 
     width: 75
     height: 105
     radius: 7
-
     color: faceUp ? "white" : "dark blue"
-    border.color: "white"
-    border.width: 1
+    border.width: selected ? 4 : 1
 
     function rankText(rank) {
         switch (rank) {
@@ -27,31 +28,29 @@ Rectangle {
 
     Text {
         anchors.centerIn: parent
-
         text: {
             if (!root.faceUp)
                 return "$"
-
             if (!root.card)
                 return ""
-
-            return root.rankText(root.card.rank)
-                   + root.card.suit
+            return root.rankText(root.card.rank) + root.card.suit
         }
-
         font.pixelSize: 27
         font.bold: true
-
         color: {
             if (!root.faceUp)
                 return "white"
-
-            if (root.card &&
-                (root.card.suit === "♥" ||
-                 root.card.suit === "♦"))
+            if (root.card && (root.card.suit === "♥" ||
+                              root.card.suit === "♦"))
                 return "red"
-
             return "black"
         }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.faceUp && root.selectable
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
     }
 }
