@@ -21,8 +21,6 @@ App {
         playerHand = result.playerHand
         computerHand = result.computerHand
         remainingDeck = result.remainingDeck
-        console.log(playerHand[0].rank)
-        console.log(playerHand[0].suit)
     }
 
     Component.onCompleted: dealCards()
