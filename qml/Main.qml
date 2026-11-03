@@ -2,6 +2,7 @@ import Felgo
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "PokerAI.js" as PokerAI
 import "GameEngine.js" as GameEngine
 import "PokerHandEvaluator.js" as PokerHands
 
@@ -85,8 +86,7 @@ App {
             remainingDeck
         )
 
-        const computerIndices =
-            GameEngine.randomExchangeIndices()
+        const computerIndices = PokerAI.chooseDiscardIndices(computerHand)
 
         const computerResult = GameEngine.exchangeCards(
             computerHand,
@@ -128,42 +128,28 @@ App {
     }
 
     function runComputerTurn() {
-        for (let step = 0;
-             step < 4 && gameState.acting === "computer";
-             step++) {
+        let steps = 0
 
-            const options =
-                GameEngine.availableActions(gameState)
+        while (gameState.acting === "computer" && steps < 10) {
+            steps++
 
-            if (options.length === 0)
-                break
+            const decision = PokerAI.chooseBettingAction(
+                gameState,
+                computerHand,
+                playerDrawCount
+            )
 
-            const action = options[
-                Math.floor(Math.random() * options.length)
-            ]
-
-            let amount = 0
-
-            if (action === "bet" || action === "raise") {
-                const maxTo = GameEngine.maxBetTo(
-                    gameState, "computer"
-                )
-
-                const fullMin = action === "bet"
-                    ? gameState.minBet
-                    : gameState.currentBet + gameState.lastRaise
-
-                const low = Math.min(fullMin, maxTo)
-
-                amount = low
-
-                // Occasionally use the largest allowed bet.
-                if (maxTo > low && Math.random() < 0.3)
-                    amount = maxTo
-            }
+            console.log(
+                "Computer action:",
+                decision.action,
+                "Amount:",
+                decision.amount
+            )
 
             gameState = GameEngine.applyBettingAction(
-                gameState, action, amount
+                gameState,
+                decision.action,
+                decision.amount
             )
 
             finishIfNeeded()
