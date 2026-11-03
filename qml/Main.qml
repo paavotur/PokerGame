@@ -127,34 +127,41 @@ App {
         }
     }
 
+
     function runComputerTurn() {
-        let steps = 0
+        if (gameState.acting !== "computer")
+            return
 
-        while (gameState.acting === "computer" && steps < 10) {
-            steps++
+        // Random delay: 500–1500 ms
+        computerTurnTimer.interval =
+            500 + Math.floor(Math.random() * 1001)
 
-            const decision = PokerAI.chooseBettingAction(
-                gameState,
-                computerHand,
-                playerDrawCount
-            )
-
-            console.log(
-                "Computer action:",
-                decision.action,
-                "Amount:",
-                decision.amount
-            )
-
-            gameState = GameEngine.applyBettingAction(
-                gameState,
-                decision.action,
-                decision.amount
-            )
-
-            finishIfNeeded()
-        }
+        computerTurnTimer.restart()
     }
+
+
+    function executeComputerTurn() {
+        if (gameState.acting !== "computer")
+            return
+
+        const decision = PokerAI.chooseBettingAction(
+            gameState,
+            computerHand,
+            playerDrawCount
+        )
+
+        gameState = GameEngine.applyBettingAction(
+            gameState,
+            decision.action,
+            decision.amount
+        )
+
+        finishIfNeeded()
+
+        // Schedule another action if needed
+        runComputerTurn()
+    }
+
 
     function finishIfNeeded() {
         if (gameState.phase === "showdown") {
@@ -197,8 +204,15 @@ App {
         dealCards()
     }
 
-
     Component.onCompleted: dealCards()
+
+    Timer {
+        id: computerTurnTimer
+        interval: 1000
+        repeat: false
+
+        onTriggered: root.executeComputerTurn()
+    }
 
     Rectangle {
         anchors.fill: parent
