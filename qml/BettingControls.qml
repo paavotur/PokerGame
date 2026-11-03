@@ -73,7 +73,7 @@ RowLayout {
                  root.actions.includes("raise")
 
         Layout.preferredWidth: 110
-        placeholderText: "Total bet"
+        placeholderText: "Bet: " + root.minTotal + "–" + root.maxTotal
         inputMethodHints: Qt.ImhDigitsOnly
 
         validator: IntValidator {
@@ -96,11 +96,5 @@ RowLayout {
         enabled: root.validAmount
 
         onClicked: root.actionRequested("raise", root.target)
-    }
-
-    Label {
-        visible: amountField.visible
-        text: "Total: " + root.minTotal + "–" + root.maxTotal
-        color: "white"
     }
 }

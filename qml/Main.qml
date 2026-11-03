@@ -226,6 +226,12 @@ App {
                 spacing: 20
                 Layout.alignment: Qt.AlignHCenter
 
+                // Invisible spacer balances the chip on the right
+                Item {
+                    Layout.preferredWidth: 90
+                    Layout.preferredHeight: 90
+                }
+
                 Row {
                     spacing: 8
 
@@ -293,6 +299,12 @@ App {
             RowLayout {
                 spacing: 20
                 Layout.alignment: Qt.AlignHCenter
+
+                // Invisible spacer balances the chip on the right
+                Item {
+                    Layout.preferredWidth: 90
+                    Layout.preferredHeight: 90
+                }
 
                 Row {
                     spacing: 8
