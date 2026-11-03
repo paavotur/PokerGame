@@ -1,4 +1,69 @@
 
+
+function createDeck() {
+    const deck = []
+    const suits = ["♠", "♥", "♦", "♣"]
+
+    for (const suit of suits) {
+        for (let rank = 2; rank <= 14; rank++) {
+            deck.push({ suit: suit, rank: rank })
+        }
+    }
+
+    return deck
+}
+
+function shuffleDeck(deck) {
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const temp = deck[i]
+        deck[i] = deck[j]
+        deck[j] = temp
+    }
+
+    return deck
+}
+
+function startHand() {
+    const deck = shuffleDeck(createDeck())
+
+    return {
+        playerHand: deck.splice(0, 5),
+        computerHand: deck.splice(0, 5),
+        remainingDeck: deck
+    }
+}
+
+function exchangeCards(hand, selectedIndices, deck) {
+    const newHand = hand.slice()
+    const newDeck = deck.slice()
+
+    if (selectedIndices.length > newDeck.length)
+        throw new Error("Not enough cards in deck")
+
+    for (const index of selectedIndices)
+        newHand[index] = newDeck.pop()
+
+    return {
+        hand: newHand,
+        remainingDeck: newDeck
+    }
+}
+
+function randomExchangeIndices() {
+    const indices = [0, 1, 2, 3, 4]
+
+    for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const temp = indices[i]
+        indices[i] = indices[j]
+        indices[j] = temp
+    }
+
+    return indices.slice(0, Math.floor(Math.random() * 6))
+}
+
+
 /*
  * No-Limit Five Card Draw betting engine.
  *
@@ -97,17 +162,17 @@ function availableActions(state) {
         state.phase !== "betting2")
         return []
 
-    const who = state.acting
-    const other = otherPlayer(who)
+    if (state.acting !== "player" &&
+        state.acting !== "computer")
+        return []
 
+    const who = state.acting
     const owed = state.currentBet - state.roundBets[who]
-    const maxTo = maxBetTo(state, who)
 
     if (owed > 0) {
         const options = ["fold", "call"]
 
-        if (state.chips[other] > 0 &&
-            maxTo > state.currentBet)
+        if (canIncreaseBet(state, who))
             options.push("raise")
 
         return options
@@ -115,17 +180,15 @@ function availableActions(state) {
 
     const options = ["check"]
 
-    if (state.currentBet === 0 &&
-        state.chips[other] > 0 && maxTo > 0) {
-        options.push("bet")
-    } else if (state.currentBet > 0 &&
-               state.chips[other] > 0 &&
-               maxTo > state.currentBet) {
-        options.push("raise")
+    if (canIncreaseBet(state, who)) {
+        options.push(
+            state.currentBet === 0 ? "bet" : "raise"
+        )
     }
 
     return options
 }
+
 
 // Award the pot when one player wins.
 function awardPot(state, winner, reason) {
@@ -167,15 +230,16 @@ function applyBettingAction(state, action, amount) {
                       ? s.minBet
                       : s.currentBet + s.lastRaise
 
-        const isAllIn =
-            amount === s.roundBets[who] + s.chips[who]
+
+        const isEffectiveAllIn = amount === maxTo
 
         if (!Number.isInteger(amount) ||
             amount <= s.currentBet ||
             amount > maxTo ||
-            (amount < minimum && !isAllIn)) {
+            (amount < minimum && !isEffectiveAllIn)) {
+
             throw new Error(
-                "Invalid bet. Min: " + minimum +
+                "Invalid bet. Min: " + Math.min(minimum, maxTo) +
                 ", max: " + maxTo
             )
         }
@@ -276,4 +340,22 @@ function settleShowdown(state, winner) {
     s.acting = null
 
     return s
+}
+
+function canIncreaseBet(state, who) {
+    const other = otherPlayer(who)
+
+    if (state.chips[other] === 0)
+        return false
+
+    const maxTo = maxBetTo(state, who)
+
+    const fullMinimum = state.currentBet === 0
+        ? state.minBet
+        : state.currentBet + state.lastRaise
+
+    return maxTo > state.currentBet &&
+        (maxTo >= fullMinimum ||
+         maxTo === state.roundBets[who] + state.chips[who] ||
+         maxTo === state.roundBets[other] + state.chips[other])
 }

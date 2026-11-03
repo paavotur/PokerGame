@@ -8,30 +8,55 @@ import "PokerHandEvaluator.js" as PokerHands
 App {
     id: root
     width: 900
-    height: 600
+    height: 680
 
     property var playerHand: []
     property var computerHand: []
     property var remainingDeck: []
     property var selectedIndices: []
-    property bool drawAvailable: true
+    readonly property bool drawAvailable: gameState.phase === "draw"
     property int playerDrawCount: 0
     property int computerDrawCount: 0
-
 
     property string playerHandName: ""
     property string computerHandName: ""
     property string winnerText: ""
 
+    property var gameState: GameEngine.createGame()
+
+    property string message: ""
+    property bool revealComputer: false
+
     function dealCards() {
-        const result = GameEngine.startHand()
-        playerHand = result.playerHand
-        computerHand = result.computerHand
-        remainingDeck = result.remainingDeck
+        if (gameState.phase !== "ready" &&
+            gameState.phase !== "finished")
+            return
+
+        if (gameState.chips.player < gameState.ante ||
+            gameState.chips.computer < gameState.ante) {
+            message = "Game over — not enough chips for ante"
+            return
+        }
+
+        const dealt = GameEngine.startHand()
+
+        playerHand = dealt.playerHand
+        computerHand = dealt.computerHand
+        remainingDeck = dealt.remainingDeck
+
         selectedIndices = []
-        drawAvailable = true
         playerDrawCount = 0
         computerDrawCount = 0
+
+        playerHandName = ""
+        computerHandName = ""
+        winnerText = ""
+        message = ""
+        revealComputer = false
+
+        gameState = GameEngine.startBettingHand(gameState)
+
+        runComputerTurn()
     }
 
     function toggleCard(index) {
@@ -54,41 +79,138 @@ App {
         if (!drawAvailable)
             return
 
-        // Both players draw from the same remaining deck.
-        const playerNewHandAndRemainingDeck = GameEngine.exchangeCards(
-            playerHand, selectedIndices, remainingDeck)
-        const computerIndices = GameEngine.randomExchangeIndices()
-        const computerNewHandAndRemainingDeck = GameEngine.exchangeCards(
-            computerHand, computerIndices, playerNewHandAndRemainingDeck.remainingDeck)
+        const playerResult = GameEngine.exchangeCards(
+            playerHand,
+            selectedIndices,
+            remainingDeck
+        )
 
-        playerHand = playerNewHandAndRemainingDeck.hand
-        computerHand = computerNewHandAndRemainingDeck.hand
-        remainingDeck = computerNewHandAndRemainingDeck.remainingDeck
+        const computerIndices =
+            GameEngine.randomExchangeIndices()
+
+        const computerResult = GameEngine.exchangeCards(
+            computerHand,
+            computerIndices,
+            playerResult.remainingDeck
+        )
+
+        playerHand = playerResult.hand
+        computerHand = computerResult.hand
+        remainingDeck = computerResult.remainingDeck
+
         playerDrawCount = selectedIndices.length
         computerDrawCount = computerIndices.length
         selectedIndices = []
-        drawAvailable = false
 
+        gameState = GameEngine.completeDraw(gameState)
 
-        // Evaluate both hands
-        const playerResult = PokerHands.evaluateHand(playerHand)
-        const computerResult = PokerHands.evaluateHand(computerHand)
-
-        playerHandName = playerResult.name
-        computerHandName = computerResult.name
-
-        const winner = PokerHands.compareHands(
-            playerHand, computerHand
-        )
-
-        if (winner === 1)
-            winnerText = "YOU WIN!"
-        else if (winner === -1)
-            winnerText = "COMPUTER WINS!"
-        else
-            winnerText = "IT'S A TIE!"
-
+        finishIfNeeded()
+        runComputerTurn()
     }
+
+    function playerAction(action, amount) {
+        if (gameState.acting !== "player")
+            return
+
+        try {
+            gameState = GameEngine.applyBettingAction(
+                gameState, action, amount
+            )
+
+            message = ""
+
+            finishIfNeeded()
+            runComputerTurn()
+
+        } catch (error) {
+            message = String(error)
+        }
+    }
+
+    function runComputerTurn() {
+        for (let step = 0;
+             step < 4 && gameState.acting === "computer";
+             step++) {
+
+            const options =
+                GameEngine.availableActions(gameState)
+
+            if (options.length === 0)
+                break
+
+            const action = options[
+                Math.floor(Math.random() * options.length)
+            ]
+
+            let amount = 0
+
+            if (action === "bet" || action === "raise") {
+                const maxTo = GameEngine.maxBetTo(
+                    gameState, "computer"
+                )
+
+                const fullMin = action === "bet"
+                    ? gameState.minBet
+                    : gameState.currentBet + gameState.lastRaise
+
+                const low = Math.min(fullMin, maxTo)
+
+                amount = low
+
+                // Occasionally use the largest allowed bet.
+                if (maxTo > low && Math.random() < 0.3)
+                    amount = maxTo
+            }
+
+            gameState = GameEngine.applyBettingAction(
+                gameState, action, amount
+            )
+
+            finishIfNeeded()
+        }
+    }
+
+    function finishIfNeeded() {
+        if (gameState.phase === "showdown") {
+            playerHandName =
+                PokerHands.evaluateHand(playerHand).name
+
+            computerHandName =
+                PokerHands.evaluateHand(computerHand).name
+
+            const comparison = PokerHands.compareHands(
+                playerHand, computerHand
+            )
+
+            const winner = comparison > 0 ? "player" :
+                           comparison < 0 ? "computer" : "tie"
+
+            gameState = GameEngine.settleShowdown(
+                gameState, winner
+            )
+
+            revealComputer = true
+
+            winnerText = winner === "tie"
+                ? "TIE — POT SPLIT"
+                : winner === "player"
+                  ? "YOU WIN!"
+                  : "COMPUTER WINS!"
+
+        } else if (gameState.phase === "finished" &&
+                   gameState.reason === "fold") {
+
+            winnerText = gameState.winner === "player"
+                ? "COMPUTER FOLDED — YOU WIN!"
+                : "YOU FOLDED — COMPUTER WINS!"
+        }
+    }
+
+    function resetGame() {
+        gameState = GameEngine.createGame()
+        dealCards()
+    }
+
 
     Component.onCompleted: dealCards()
 
@@ -101,7 +223,11 @@ App {
             spacing: 16
 
             Text {
-                text: "COMPUTER: " +  root.computerHandName
+                text: "COMPUTER — " + root.gameState.chips.computer
+                      + " chips"
+                      + (root.computerHandName
+                         ? " — " + root.computerHandName : "")
+
                 color: "white"
                 font.pixelSize: 22
                 Layout.alignment: Qt.AlignHCenter
@@ -116,7 +242,7 @@ App {
                     delegate: PlayingCard {
                         required property var modelData
                         card: modelData
-                        faceUp: !root.drawAvailable
+                        faceUp: root.revealComputer
                         selectable: false
                     }
                 }
@@ -130,12 +256,25 @@ App {
             }
 
             Text {
-                text: "POT: 20"
+                text: "POT: " + root.gameState.pot
                 color: "yellow"
                 font.pixelSize: 25
                 Layout.alignment: Qt.AlignHCenter
             }
 
+            Text {
+                text: root.gameState.phase === "betting1"
+                      ? "Betting round 1"
+                      : root.gameState.phase === "draw"
+                        ? "Draw cards (0–5)"
+                        : root.gameState.phase === "betting2"
+                          ? "Betting round 2"
+                          : root.gameState.phase === "finished"
+                            ? "Hand finished" : ""
+
+                color: "white"
+                Layout.alignment: Qt.AlignHCenter
+            }
 
             Text {
                 text: root.winnerText
@@ -148,6 +287,12 @@ App {
                 Layout.alignment: Qt.AlignHCenter
             }
 
+            Text {
+                text: root.message
+                visible: text.length > 0
+                color: "yellow"
+                Layout.alignment: Qt.AlignHCenter
+            }
 
             Row {
                 spacing: 8
@@ -190,29 +335,58 @@ App {
 
 
             Text {
-                text: "Player: " + root.playerHandName
+                text: "PLAYER — " + root.gameState.chips.player
+                      + " chips"
+                      + (root.playerHandName
+                         ? " — " + root.playerHandName : "")
+
                 visible: !root.drawAvailable
                 color: "white"
                 font.pixelSize: 22
                 Layout.alignment: Qt.AlignHCenter
             }
 
+            BettingControls {
+                visible: root.gameState.acting === "player"
+                gameState: root.gameState
 
-            RowLayout {
-                spacing: 16
                 Layout.alignment: Qt.AlignHCenter
 
-                Button {
-                    text: "Draw"
-                    enabled: root.drawAvailable
-                    onClicked: root.drawCards()
-                }
-
-                Button {
-                    text: "Deal New Hand"
-                    onClicked: root.dealCards()
+                onActionRequested: (action, amount) => {
+                    root.playerAction(action, amount)
                 }
             }
+
+            Button {
+                text: "Draw"
+                visible: root.drawAvailable
+
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: root.drawCards()
+            }
+
+            Button {
+                text: "Deal New Hand"
+
+                visible: root.gameState.phase === "finished" &&
+                         root.gameState.chips.player >= root.gameState.ante &&
+                         root.gameState.chips.computer >= root.gameState.ante
+
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: root.dealCards()
+            }
+
+            Button {
+                text: "New Game"
+
+                visible: root.gameState.phase === "finished" &&
+                         (root.gameState.chips.player < root.gameState.ante ||
+                          root.gameState.chips.computer < root.gameState.ante)
+
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: root.resetGame()
+            }
+
         }
     }
 }
