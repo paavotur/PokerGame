@@ -222,29 +222,25 @@ App {
             anchors.centerIn: parent
             spacing: 16
 
-            Text {
-                text: "COMPUTER — " + root.gameState.chips.computer
-                      + " chips"
-                      + (root.computerHandName
-                         ? " — " + root.computerHandName : "")
-
-                color: "white"
-                font.pixelSize: 22
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Row {
-                spacing: 8
+            RowLayout {
+                spacing: 20
                 Layout.alignment: Qt.AlignHCenter
 
-                Repeater {
-                    model: root.computerHand
-                    delegate: PlayingCard {
-                        required property var modelData
-                        card: modelData
-                        faceUp: root.revealComputer
-                        selectable: false
+                Row {
+                    spacing: 8
+
+                    Repeater {
+                        model: root.computerHand
+
+                        delegate: PlayingCard {
+                            card: modelData
+                            faceUp: root.revealComputer
+                        }
                     }
+                }
+
+                PokerChip {
+                    amount: root.gameState.chips.computer
                 }
             }
 
@@ -294,34 +290,46 @@ App {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            Row {
-                spacing: 8
+            RowLayout {
+                spacing: 20
                 Layout.alignment: Qt.AlignHCenter
 
-                Repeater {
-                    model: root.playerHand
+                Row {
+                    spacing: 8
 
-                    delegate: Item {
-                        id: cardSlot
-                        required property int index
-                        required property var modelData
+                    Repeater {
+                        model: root.playerHand
 
-                        width: 75
-                        height: 120
+                        delegate: Item {
+                            id: cardSlot
 
-                        PlayingCard {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            y: selected ? 0 : 12
-                            card: cardSlot.modelData
-                            selected: root.selectedIndices.indexOf(cardSlot.index) !== -1
-                            selectable: root.drawAvailable
-                            onClicked: root.toggleCard(cardSlot.index)
+                            required property int index
+                            required property var modelData
 
-                            Behavior on y {
-                                NumberAnimation { duration: 120 }
+                            width: 75
+                            height: 120
+
+                            PlayingCard {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                card: cardSlot.modelData
+                                selected: root.selectedIndices.indexOf(cardSlot.index) !== -1
+                                selectable: root.drawAvailable
+                                y: selected ? 0 : 12
+
+                                onClicked: root.toggleCard(cardSlot.index)
+
+                                Behavior on y {
+                                    NumberAnimation {
+                                        duration: 120
+                                    }
+                                }
                             }
                         }
                     }
+                }
+
+                PokerChip {
+                    amount: root.gameState.chips.player
                 }
             }
 
@@ -330,19 +338,6 @@ App {
                       ? "Select 0-5 cards to replace (" + root.selectedIndices.length + " selected)"
                       : "You changed " + root.playerDrawCount + " cards"
                 color: "white"
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-
-            Text {
-                text: "PLAYER — " + root.gameState.chips.player
-                      + " chips"
-                      + (root.playerHandName
-                         ? " — " + root.playerHandName : "")
-
-                visible: !root.drawAvailable
-                color: "white"
-                font.pixelSize: 22
                 Layout.alignment: Qt.AlignHCenter
             }
 
