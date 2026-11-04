@@ -357,6 +357,7 @@ App {
                             PlayingCard {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 card: cardSlot.modelData
+                                drawHint: root.drawAvailable && !root.computerDrawing
                                 selected: root.selectedIndices.indexOf(cardSlot.index) !== -1
                                 selectable: root.drawAvailable
                                 y: selected ? 0 : 12

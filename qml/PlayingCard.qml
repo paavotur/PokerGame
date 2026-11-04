@@ -7,6 +7,7 @@ Rectangle {
     property bool faceUp: true
     property bool selected: false
     property bool selectable: true
+    property bool drawHint: false
 
     signal clicked()
 
@@ -14,7 +15,8 @@ Rectangle {
     height: 105
     radius: 7
     color: faceUp ? "white" : "dark blue"
-    border.width: selected ? 4 : 1
+
+    border.width: selected ? 6 : drawHint ? 4 : 1
 
     function rankText(rank) {
         switch (rank) {
