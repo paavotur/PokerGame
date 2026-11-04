@@ -318,20 +318,6 @@ App {
             }
 
             Text {
-                text: root.gameState.phase === "betting1"
-                      ? "Betting round 1"
-                      : root.gameState.phase === "draw"
-                        ? "Draw cards (0–5)"
-                        : root.gameState.phase === "betting2"
-                          ? "Betting round 2"
-                          : root.gameState.phase === "finished"
-                            ? "Hand finished" : ""
-
-                color: "white"
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Text {
                 text: root.winnerText
                 visible: text !== ""
 
