@@ -16,7 +16,11 @@ Rectangle {
     radius: 7
     color: faceUp ? "white" : "dark blue"
 
-    border.width: selected ? 6 : drawHint ? 4 : 1
+    border.width: selected ? 4 : drawHint ? 4 : 1
+
+    border.color: selected ? "black"
+                : drawHint ? "#FFD700"
+                : "black"
 
     function rankText(rank) {
         switch (rank) {

@@ -315,7 +315,7 @@ App {
                       ? root.winnerText
                       : "POT: " + root.gameState.pot
 
-                color: "yellow"
+                color: "#FFD700"
                 font.pixelSize: 25
                 font.bold: true
 
@@ -325,7 +325,7 @@ App {
             Text {
                 text: root.message
                 visible: text.length > 0
-                color: "yellow"
+                color: "#FFD700"
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -360,7 +360,7 @@ App {
                                 drawHint: root.drawAvailable && !root.computerDrawing
                                 selected: root.selectedIndices.indexOf(cardSlot.index) !== -1
                                 selectable: root.drawAvailable
-                                y: selected ? 0 : 12
+                                y: selected ? 0 : 15
 
                                 onClicked: root.toggleCard(cardSlot.index)
 
