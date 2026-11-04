@@ -258,17 +258,6 @@ App {
             anchors.centerIn: parent
             spacing: 16
 
-            Text {
-                text: root.winnerText
-                visible: text !== ""
-
-                color: "yellow"
-                font.pixelSize: 26
-                font.bold: true
-
-                Layout.alignment: Qt.AlignHCenter
-            }
-
             RowLayout {
                 spacing: 20
                 Layout.alignment: Qt.AlignHCenter
@@ -322,9 +311,14 @@ App {
             }
 
             Text {
-                text: "POT: " + root.gameState.pot
+                text: root.winnerText !== ""
+                      ? root.winnerText
+                      : "POT: " + root.gameState.pot
+
                 color: "yellow"
                 font.pixelSize: 25
+                font.bold: true
+
                 Layout.alignment: Qt.AlignHCenter
             }
 
