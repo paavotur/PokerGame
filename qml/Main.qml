@@ -293,7 +293,7 @@ App {
                                 selected: root.computerSelectedIndices.includes(
                                               computerCardSlot.index)
 
-                                y: selected ? 0 : 12
+                                y: selected ? 15 : 0
 
                                 Behavior on y {
                                     NumberAnimation {
