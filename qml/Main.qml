@@ -389,7 +389,7 @@ App {
 
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 60
+                Layout.preferredHeight: 90
 
                 RowLayout {
                     anchors.centerIn: parent
@@ -404,15 +404,15 @@ App {
                         }
                     }
 
-                    Button {
+                    RoundActionButton {
                         text: "Draw"
                         visible: root.drawAvailable
                         enabled: !root.computerDrawing
                         onClicked: root.drawCards()
                     }
 
-                    Button {
-                        text: "Deal New Hand"
+                    RoundActionButton {
+                        text: "Deal"
                         visible: root.gameState.phase === "finished" &&
                                  root.gameState.chips.player >= root.gameState.ante &&
                                  root.gameState.chips.computer >= root.gameState.ante
@@ -420,7 +420,7 @@ App {
                         onClicked: root.dealCards()
                     }
 
-                    Button {
+                    RoundActionButton {
                         text: "New Game"
                         visible: root.gameState.phase === "finished" &&
                                  (root.gameState.chips.player < root.gameState.ante ||
