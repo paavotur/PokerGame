@@ -25,6 +25,9 @@ App {
 
     property var gameState: GameEngine.createGame()
 
+    property var computerSelectedIndices: []
+    property bool computerDrawing: false
+
     property string message: ""
     property bool revealComputer: false
 
@@ -61,7 +64,7 @@ App {
     }
 
     function toggleCard(index) {
-        if (!drawAvailable)
+        if (!drawAvailable || computerDrawing)
             return
 
         const nextSelection = selectedIndices.slice()
@@ -77,36 +80,59 @@ App {
     }
 
     function drawCards() {
-        if (!drawAvailable)
+        if (!drawAvailable || computerDrawing)
             return
 
+        // Player exchanges selected cards immediately
         const playerResult = GameEngine.exchangeCards(
             playerHand,
             selectedIndices,
             remainingDeck
         )
 
-        const computerIndices = PokerAI.chooseDiscardIndices(computerHand)
-
-        const computerResult = GameEngine.exchangeCards(
-            computerHand,
-            computerIndices,
-            playerResult.remainingDeck
-        )
-
         playerHand = playerResult.hand
-        computerHand = computerResult.hand
-        remainingDeck = computerResult.remainingDeck
+        remainingDeck = playerResult.remainingDeck
 
         playerDrawCount = selectedIndices.length
-        computerDrawCount = computerIndices.length
         selectedIndices = []
 
+        // Computer selects its cards
+        computerSelectedIndices =
+            PokerAI.chooseDiscardIndices(computerHand)
+
+        computerDrawing = true
+
+        // Show selected cards before exchanging
+        computerDrawTimer.start()
+    }
+
+
+    function finishComputerDraw() {
+        if (!computerDrawing || gameState.phase !== "draw")
+            return
+
+        const result = GameEngine.exchangeCards(
+            computerHand,
+            computerSelectedIndices,
+            remainingDeck
+        )
+
+        computerHand = result.hand
+        remainingDeck = result.remainingDeck
+
+        computerDrawCount = computerSelectedIndices.length
+
+        // Move cards back to their normal positions
+        computerSelectedIndices = []
+        computerDrawing = false
+
+        // Continue the game
         gameState = GameEngine.completeDraw(gameState)
 
         finishIfNeeded()
         runComputerTurn()
     }
+
 
     function playerAction(action, amount) {
         if (gameState.acting !== "player")
@@ -126,7 +152,6 @@ App {
             message = String(error)
         }
     }
-
 
     function runComputerTurn() {
         if (gameState.acting !== "computer")
@@ -214,6 +239,17 @@ App {
         onTriggered: root.executeComputerTurn()
     }
 
+
+    Timer {
+        id: computerDrawTimer
+
+        interval: 1000
+        repeat: false
+
+        onTriggered: root.finishComputerDraw()
+    }
+
+
     Rectangle {
         anchors.fill: parent
         color: "darkgreen"
@@ -238,9 +274,33 @@ App {
                     Repeater {
                         model: root.computerHand
 
-                        delegate: PlayingCard {
-                            card: modelData
-                            faceUp: root.revealComputer
+                        delegate: Item {
+                            id: computerCardSlot
+
+                            required property int index
+                            required property var modelData
+
+                            width: 75
+                            height: 120
+
+                            PlayingCard {
+                                anchors.horizontalCenter: parent.horizontalCenter
+
+                                card: computerCardSlot.modelData
+                                faceUp: root.revealComputer
+                                selectable: false
+
+                                selected: root.computerSelectedIndices.includes(
+                                              computerCardSlot.index)
+
+                                y: selected ? 0 : 12
+
+                                Behavior on y {
+                                    NumberAnimation {
+                                        duration: 180
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -248,13 +308,6 @@ App {
                 PokerChip {
                     amount: root.gameState.chips.computer
                 }
-            }
-
-            Text {
-                text: root.drawAvailable ? "Computer waits to draw" :
-                      "Computer changed " + root.computerDrawCount + " cards"
-                color: "white"
-                Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
@@ -366,7 +419,9 @@ App {
 
             Button {
                 text: "Draw"
+
                 visible: root.drawAvailable
+                enabled: !root.computerDrawing
 
                 Layout.alignment: Qt.AlignHCenter
                 onClicked: root.drawCards()
