@@ -392,49 +392,49 @@ App {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            BettingControls {
-                visible: root.gameState.acting === "player"
-                gameState: root.gameState
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
 
-                Layout.alignment: Qt.AlignHCenter
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: 10
 
-                onActionRequested: (action, amount) => {
-                    root.playerAction(action, amount)
+                    BettingControls {
+                        gameState: root.gameState
+                        visible: root.gameState.acting === "player"
+
+                        onActionRequested: (action, amount) => {
+                            root.playerAction(action, amount)
+                        }
+                    }
+
+                    Button {
+                        text: "Draw"
+                        visible: root.drawAvailable
+                        enabled: !root.computerDrawing
+                        onClicked: root.drawCards()
+                    }
+
+                    Button {
+                        text: "Deal New Hand"
+                        visible: root.gameState.phase === "finished" &&
+                                 root.gameState.chips.player >= root.gameState.ante &&
+                                 root.gameState.chips.computer >= root.gameState.ante
+
+                        onClicked: root.dealCards()
+                    }
+
+                    Button {
+                        text: "New Game"
+                        visible: root.gameState.phase === "finished" &&
+                                 (root.gameState.chips.player < root.gameState.ante ||
+                                  root.gameState.chips.computer < root.gameState.ante)
+
+                        onClicked: root.resetGame()
+                    }
                 }
             }
-
-            Button {
-                text: "Draw"
-
-                visible: root.drawAvailable
-                enabled: !root.computerDrawing
-
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: root.drawCards()
-            }
-
-            Button {
-                text: "Deal New Hand"
-
-                visible: root.gameState.phase === "finished" &&
-                         root.gameState.chips.player >= root.gameState.ante &&
-                         root.gameState.chips.computer >= root.gameState.ante
-
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: root.dealCards()
-            }
-
-            Button {
-                text: "New Game"
-
-                visible: root.gameState.phase === "finished" &&
-                         (root.gameState.chips.player < root.gameState.ante ||
-                          root.gameState.chips.computer < root.gameState.ante)
-
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: root.resetGame()
-            }
-
         }
     }
 }
