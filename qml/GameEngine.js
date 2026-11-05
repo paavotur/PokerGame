@@ -71,7 +71,7 @@ function randomExchangeIndices() {
  * contribution in the current betting round.
  */
 
-function createGame(startingChips = 1000, ante = 10, minBet = 10) {
+function createGame(startingChips = 1000, ante = 20, minBet = 50) {
     if (![startingChips, ante, minBet].every(Number.isInteger) ||
         startingChips <= 0 || ante <= 0 || minBet <= 0)
         throw new Error("Invalid game settings")
