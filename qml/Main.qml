@@ -380,9 +380,11 @@ App {
             }
 
             Text {
-                text: root.drawAvailable
-                      ? "Select 0-5 cards to replace (" + root.selectedIndices.length + " selected)"
-                      : "You changed " + root.playerDrawCount + " cards"
+                text: "Select 0-5 cards to replace (" +
+                      root.selectedIndices.length + " selected)"
+
+                opacity: root.drawAvailable && !root.computerDrawing ? 1 : 0
+
                 color: "white"
                 Layout.alignment: Qt.AlignHCenter
             }
