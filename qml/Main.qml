@@ -24,7 +24,7 @@ App {
     property string computerHandName: ""
     property string winnerText: ""
 
-    property var gameState: MultiPlayerEngine.createGame()
+    property var gameState: GameEngine.createGame()
 
     property var computerSelectedIndices: []
     property bool computerDrawing: false
