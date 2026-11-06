@@ -254,6 +254,80 @@ App {
         anchors.fill: parent
         color: "darkgreen"
 
+        RoundActionButton {
+            text: "?"
+
+            width: 50
+            height: 50
+
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: 15
+
+            onClicked: handRanksPopup.open()
+        }
+
+
+        Popup {
+            id: handRanksPopup
+
+            parent: Overlay.overlay
+            anchors.centerIn: parent
+
+            width: 300
+            padding: 20
+
+            modal: true
+            focus: true
+
+            closePolicy: Popup.CloseOnEscape |
+                         Popup.CloseOnPressOutside
+
+            background: Rectangle {
+                color: "white"
+                radius: 12
+                border.color: "black"
+                border.width: 2
+            }
+
+            contentItem: ColumnLayout {
+                spacing: 12
+
+                Text {
+                    text: "POKER HAND RANKINGS"
+                    font.pixelSize: 18
+                    font.bold: true
+                    color: "black"
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Repeater {
+                    model: [
+                        "1. Royal Flush",
+                        "2. Straight Flush",
+                        "3. Four of a Kind (Quads)",
+                        "4. Full House",
+                        "5. Flush",
+                        "6. Straight",
+                        "7. Three of a Kind",
+                        "8. Two Pair",
+                        "9. One Pair",
+                        "10. High Card"
+                    ]
+
+                    delegate: Text {
+                        required property string modelData
+
+                        text: modelData
+                        font.pixelSize: 16
+                        color: "black"
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+        }
+
+
         ColumnLayout {
             anchors.centerIn: parent
             spacing: 16
