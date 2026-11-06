@@ -445,24 +445,28 @@ function settleShowdown(game, compareHands) {
 
     for (const pot of pots) {
         let winningIds = []
-        for (const id of pot.eligibleIds) {
+        for (let i = 0; i < pot.eligibleIds.length; i++) {
+            const playerId = pot.eligibleIds[i]
             if (winningIds.length === 0) {
-                winningIds = [id]
+                winningIds = [playerId]
                 continue
             }
             const comparison = compareHands(
-                s.players[id].hand,
+                s.players[playerId].hand,
                 s.players[winningIds[0]].hand)
             if (comparison > 0)
-                winningIds = [id]
+                winningIds = [playerId]
             else if (comparison === 0)
-                winningIds.push(id)
+                winningIds.push(playerId)
         }
 
         // Odd chips go to the first winning seat left of the dealer.
         winningIds.sort((a, b) =>
             ((a - s.dealerIndex + s.players.length - 1) % s.players.length) -
             ((b - s.dealerIndex + s.players.length - 1) % s.players.length))
+
+        if (winningIds.length === 0)
+            throw new Error("Side pot has no eligible winners")
 
         const share = Math.floor(pot.amount / winningIds.length)
         let remainder = pot.amount % winningIds.length
