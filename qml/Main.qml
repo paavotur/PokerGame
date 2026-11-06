@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "PokerAI.js" as PokerAI
 import "GameEngine.js" as GameEngine
+import "MultiPlayerEngine.js" as MultiPlayerEngine
 import "PokerHandEvaluator.js" as PokerHands
 
 App {
@@ -23,7 +24,7 @@ App {
     property string computerHandName: ""
     property string winnerText: ""
 
-    property var gameState: GameEngine.createGame()
+    property var gameState: MultiPlayerEngine.createGame()
 
     property var computerSelectedIndices: []
     property bool computerDrawing: false
