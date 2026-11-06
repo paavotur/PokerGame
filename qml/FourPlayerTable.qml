@@ -212,7 +212,7 @@ Rectangle {
         cardWidth: 62
         cardHeight: 90
         cardSpacing: 5
-        chipSize: 74
+        chipSize: 75
 
         reveal: root.revealComputer
         selectedIndices: root.computerSelections[1] || []
@@ -233,7 +233,7 @@ Rectangle {
         cardWidth: 62
         cardHeight: 90
         cardSpacing: 5
-        chipSize: 62
+        chipSize: 75
 
         reveal: root.revealComputer
         selectedIndices: root.computerSelections[2] || []
@@ -254,7 +254,7 @@ Rectangle {
         cardWidth: 62
         cardHeight: 90
         cardSpacing: 5
-        chipSize: 62
+        chipSize: 75
 
         reveal: root.revealComputer
         selectedIndices: root.computerSelections[3] || []
@@ -282,7 +282,7 @@ Rectangle {
         chipPlacement: "right"
         cardWidth: 62
         cardHeight: 90
-        chipSize: 74
+        chipSize: 75
         drawEnabled: root.playerCanDraw
         selectedIndices: root.selectedIndices
         anchors.horizontalCenter: parent.horizontalCenter
