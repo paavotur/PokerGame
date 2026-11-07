@@ -69,29 +69,41 @@ Item {
                 width: root.cardWidth
                 height: root.cardsHeight
 
+
                 PlayingCard {
                     id: cardVisual
+
                     width: root.cardWidth
                     height: root.cardHeight
+
                     card: cardSlot.modelData
+
                     faceUp: root.human ||
                             (root.reveal && root.player && !root.player.folded)
+
                     selectable: root.human && root.drawEnabled
                     drawHint: root.human && root.drawEnabled
+
                     selected: root.selectedIndices.includes(cardSlot.index)
 
-                    y: root.human ? (selected ? 0 : 12) :
-                       (selected && root.discardDirection === "down" ? 12 : 0)
-                    x: selected && !root.human
-                       ? (root.discardDirection === "right" ? 12 :
-                          root.discardDirection === "left" ? -12 : 0)
-                       : 0
+                    // Human: selected cards move up as before.
+                    // Computers: selected cards fade out without moving.
+                    y: root.human ? (selected ? 0 : 12) : 0
+                    x: 0
 
-                    Behavior on x { NumberAnimation { duration: 180 } }
-                    Behavior on y { NumberAnimation { duration: 180 } }
+                    opacity: root.human || !selected ? 1 : 0
+
+                    Behavior on y {
+                        NumberAnimation { duration: 180 }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 250 }
+                    }
 
                     onClicked: root.cardClicked(cardSlot.index)
                 }
+
             }
         }
     }
