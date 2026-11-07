@@ -263,7 +263,19 @@ function refundUncalled(game) {
 function finishBettingRound(game) {
     refundUncalled(game)
     game.turnIndex = -1
-    game.phase = game.phase === "betting1" ? "draw" : "showdown"
+
+    if (game.phase === "betting1") {
+        game.phase = "draw"
+
+        // First player clockwise from the dealer.
+        game.turnIndex = nextSeat(
+            game.players,
+            game.dealerIndex,
+            p => isContender(p) && !p.drawn
+        )
+    } else {
+        game.phase = "showdown"
+    }
 }
 
 function beginBettingRound(game, phase) {
@@ -397,8 +409,9 @@ function drawCards(game, playerId, discardIndices) {
         throw new Error("Not in draw phase")
 
     const p = s.players[playerId]
-    if (!p || !isContender(p) || p.drawn)
-        throw new Error("Player cannot draw")
+    if (s.turnIndex !== playerId ||
+        !p || !isContender(p) || p.drawn)
+        throw new Error("Not this player's draw turn")
 
     if (!Array.isArray(discardIndices) ||
         discardIndices.length > 5 ||
@@ -411,14 +424,24 @@ function drawCards(game, playerId, discardIndices) {
         p.hand[index] = s.deck.pop()
 
     p.drawn = true
+
+    s.turnIndex = nextSeat(
+        s.players,
+        playerId,
+        other => isContender(other) && !other.drawn
+    )
+
     return s
 }
 
 function completeDraw(game) {
     const s = cloneGame(game)
+
     if (s.phase !== "draw" ||
-        s.players.some(p => isContender(p) && !p.drawn))
+        s.turnIndex !== -1 ||
+        s.players.some(p => isContender(p) && !p.drawn)) {
         throw new Error("Not every active player has drawn")
+    }
 
     beginBettingRound(s, "betting2")
     return s

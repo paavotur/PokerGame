@@ -20,25 +20,27 @@ Rectangle {
 
     property bool chipsMoving: false
     property int animatingPlayerId: -1
+    property int computerDrawPlayerId: -1
 
     readonly property bool playerCanDraw:
-        game.phase === "draw" && game.players[0].inHand &&
-        !game.players[0].folded && !game.players[0].drawn &&
-        !computerDrawing
+        game.phase === "draw" &&
+        game.turnIndex === 0 &&
+        game.players[0].inHand &&
+        !game.players[0].folded &&
+        !game.players[0].drawn &&
+        !computerDrawing &&
+        !chipsMoving
 
     readonly property int playersAbleToAnte:
         game.players.filter(p => p.chips >= game.ante).length
 
-
     readonly property int highlightedPlayerId:
-        chipsMoving
-            ? animatingPlayerId
-            : (game.phase === "betting1" ||
-               game.phase === "betting2")
-                ? game.turnIndex
-                : -1
-
-
+        chipsMoving ? animatingPlayerId :
+        computerDrawing ? computerDrawPlayerId :
+        (game.phase === "betting1" ||
+         game.phase === "betting2" ||
+         game.phase === "draw")
+            ? game.turnIndex : -1
 
     function startNewHand() {
         if (game.phase !== "ready" && game.phase !== "finished")
@@ -51,6 +53,7 @@ Rectangle {
         computerTurnTimer.stop()
         computerDrawTimer.stop()
         drawFinishTimer.stop()
+        computerDrawPlayerId = -1
         selectedIndices = []
         computerSelections = ({})
         computerDrawing = false
@@ -110,18 +113,22 @@ Rectangle {
     }
 
     function drawPlayerCards() {
-        if (!root.chipsMoving && !playerCanDraw)
+        if (!playerCanDraw)
             return
+
         try {
             const count = selectedIndices.length
+
             game = Engine.drawCards(game, 0, selectedIndices)
 
             setPlayerAction(
                 0,
                 count === 0 ? "Stand pat" : "Draw " + count
             )
+
             selectedIndices = []
-            startComputerDraw()
+            advanceGame()
+
         } catch (error) {
             errorText = String(error)
             console.log(errorText)
@@ -129,49 +136,61 @@ Rectangle {
     }
 
     function startComputerDraw() {
-        if (game.phase !== "draw" || computerDrawing)
+        if (game.phase !== "draw" ||
+            computerDrawing ||
+            game.turnIndex <= 0)
+            return
+
+        const playerId = game.turnIndex
+        const player = game.players[playerId]
+
+        if (!player.inHand || player.folded || player.drawn)
             return
 
         const selections = {}
-        for (let i = 1; i < game.players.length; i++) {
-            const p = game.players[i]
-            if (p.inHand && !p.folded && !p.drawn)
-                selections[i] = PokerAI.chooseDiscardIndices(p.hand)
-        }
+
+        selections[playerId] =
+            PokerAI.chooseDiscardIndices(player.hand)
 
         computerSelections = selections
+        computerDrawPlayerId = playerId
         computerDrawing = true
+
         computerDrawTimer.restart()
     }
 
     function finishComputerDraw() {
-        if (!computerDrawing || game.phase !== "draw")
+        if (!computerDrawing ||
+            game.phase !== "draw" ||
+            game.turnIndex !== computerDrawPlayerId)
             return
 
         try {
-            let next = game
-            for (let i = 1; i < game.players.length; i++) {
-                const p = next.players[i]
-                if (p.inHand && !p.folded && !p.drawn)
-                    next = Engine.drawCards(next, i,
-                        computerSelections[i] || [])
-                        const count = (computerSelections[i] || []).length
+            const playerId = computerDrawPlayerId
+            const indices = computerSelections[playerId] || []
 
-                        setPlayerAction(
-                            i,
-                            count === 0 ? "Stand pat" : "Draw " + count
-                        )
-            }
-            // Replace cards, but remain in draw phase.
-            game = next
+            game = Engine.drawCards(
+                game,
+                playerId,
+                indices
+            )
 
-            // Allow replacement cards to become visible.
+            setPlayerAction(
+                playerId,
+                indices.length === 0
+                    ? "Stand pat"
+                    : "Draw " + indices.length
+            )
+
+            // Replacement cards appear in the same slots.
             computerSelections = ({})
 
-            // Wait for the animation before advancing turns.
+            // Allow the animation to finish.
             drawFinishTimer.restart()
 
         } catch (error) {
+            computerDrawing = false
+            computerDrawPlayerId = -1
             errorText = String(error)
             console.log(errorText)
         }
@@ -237,9 +256,21 @@ Rectangle {
         }
 
         if (game.phase === "draw") {
-            // If human folded, complete drawing for computer players automatically.
-            if (!root.chipsMoving && !playerCanDraw && !computerDrawing)
+            if (computerDrawing)
+                return
+
+            // Everyone has completed their draw.
+            if (game.turnIndex === -1) {
+                game = Engine.completeDraw(game)
+                advanceGame()
+                return
+            }
+
+            // Computer draws only on its own turn.
+            if (game.turnIndex > 0)
                 startComputerDraw()
+
+            // Otherwise wait for the human to press Draw.
             return
         }
 
@@ -325,6 +356,7 @@ Rectangle {
         computerTurnTimer.stop()
         computerDrawTimer.stop()
         drawFinishTimer.stop()
+        computerDrawPlayerId = -1
 
         // Reset game state
         game = Engine.createGame()
@@ -344,24 +376,16 @@ Rectangle {
         potStack.amount = 0
     }
 
-        Timer {
+    Timer {
         id: drawFinishTimer
+
         interval: 300
         repeat: false
 
         onTriggered: {
-            if (!root.computerDrawing ||
-                root.game.phase !== "draw")
-                return
-
-            try {
-                root.game = Engine.completeDraw(root.game)
-                root.computerDrawing = false
-                root.advanceGame()
-            } catch (error) {
-                root.errorText = String(error)
-                console.log(root.errorText)
-            }
+            root.computerDrawing = false
+            root.computerDrawPlayerId = -1
+            root.advanceGame()
         }
     }
 
