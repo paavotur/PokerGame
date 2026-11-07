@@ -26,7 +26,6 @@ Rectangle {
     readonly property int playersAbleToAnte:
         game.players.filter(p => p.chips >= game.ante).length
 
-    Component.onCompleted: startNewHand()
 
     function startNewHand() {
         if (game.phase !== "ready" && game.phase !== "finished")
@@ -320,6 +319,7 @@ Rectangle {
 
         chipPlacement: "right"
         discardDirection: "down"
+        opacity: root.game.phase === "ready" ? 0 : 1
 
         cardWidth: 62
         cardHeight: 90
@@ -348,6 +348,7 @@ Rectangle {
 
         chipPlacement: "below"
         discardDirection: "right"
+        opacity: root.game.phase === "ready" ? 0 : 1
 
         cardWidth: 62
         cardHeight: 90
@@ -375,6 +376,7 @@ Rectangle {
 
         chipPlacement: "below"
         discardDirection: "left"
+        opacity: root.game.phase === "ready" ? 0 : 1
 
         cardWidth: 62
         cardHeight: 90
@@ -397,7 +399,11 @@ Rectangle {
         anchors.centerIn: parent
         width: 300
         horizontalAlignment: Text.AlignHCenter
-        text: root.winnerText !== "" ? root.winnerText : "POT: " + root.game.pot
+        text: root.game.phase === "ready"
+              ? ""
+              : root.winnerText !== ""
+                ? root.winnerText
+                : "POT: " + root.game.pot
         color: "#ffe99a"
         font.pixelSize: 26
         font.bold: true
@@ -412,6 +418,8 @@ Rectangle {
 
         human: true
         chipPlacement: "right"
+        opacity: root.game.phase === "ready" ? 0 : 1
+
         cardWidth: 62
         cardHeight: 90
         chipSize: 75
@@ -453,8 +461,11 @@ Rectangle {
         RoundActionButton {
             anchors.centerIn: parent
             text: "Deal"
-            visible: root.game.phase === "finished" &&
+
+            visible: (root.game.phase === "ready" ||
+                      root.game.phase === "finished") &&
                      root.playersAbleToAnte >= 2
+
             onClicked: root.startNewHand()
         }
 
