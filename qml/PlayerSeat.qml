@@ -59,6 +59,16 @@ Item {
            (root.chipPlacement === "above" ? root.sideSpace : 0)
         spacing: root.cardSpacing
 
+        opacity: root.player !== null &&
+                 root.player.inHand &&
+                 !root.player.folded ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 300
+            }
+        }
+
         Repeater {
             model: root.player ? root.player.hand : []
 
