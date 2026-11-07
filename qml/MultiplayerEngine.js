@@ -67,20 +67,25 @@ function createGame(playerCount = 4, startingChips = 1000,
     }
 }
 
-function nextActivePlayer(players, previousIndex) {
-    for (let step = 1; step <= players.length; step++) {
-        const index = (previousIndex + step) % players.length
-        if (players[index].inHand)
-            return index
-    }
-    return -1
+function clockwiseOrder(players) {
+    return [0, 2, 1, 3].filter(
+        id => id < players.length
+    )
 }
+
+function nextActivePlayer(players, previousIndex) {
+    return nextSeat(
+        players,
+        previousIndex,
+        p => p.inHand
+    )
+}
+
 
 function startHand(game) {
     if (game.phase !== "ready" && game.phase !== "finished")
         throw new Error("Previous hand is not finished")
 
-    // Clone so existing QML property bindings can be updated by assignment.
     const next = JSON.parse(JSON.stringify(game))
     const eligible = next.players.filter(p => p.chips >= next.ante)
 
@@ -98,6 +103,7 @@ function startHand(game) {
     next.lastPot = 0
     next.deck = shuffleDeck(createDeck())
 
+    // Initialize players and collect antes.
     for (const player of next.players) {
         player.hand = []
         player.inHand = player.chips >= next.ante
@@ -117,13 +123,20 @@ function startHand(game) {
         next.pot += next.ante
     }
 
-    // Rotate the dealer among players who can join the hand.
-    next.dealerIndex = nextActivePlayer(next.players, next.dealerIndex)
+    // Rotate dealer clockwise.
+    next.dealerIndex = nextActivePlayer(
+        next.players, next.dealerIndex
+    )
 
-    // Deal one card per player at a time, five times.
+    // Deal five cards to each player clockwise.
+    const order = clockwiseOrder(next.players)
+    const dealerPosition = order.indexOf(next.dealerIndex)
+
     for (let cardNumber = 0; cardNumber < 5; cardNumber++) {
-        for (let offset = 1; offset <= next.players.length; offset++) {
-            const index = (next.dealerIndex + offset) % next.players.length
+        for (let offset = 1; offset <= order.length; offset++) {
+            const index =
+                order[(dealerPosition + offset) % order.length]
+
             if (next.players[index].inHand)
                 next.players[index].hand.push(next.deck.pop())
         }
@@ -132,6 +145,7 @@ function startHand(game) {
     beginBettingRound(next, "betting1")
     return next
 }
+
 
 // Stage 2: turn-based no-limit betting, draws and side-pot settlement.
 // Amounts for bet/raise mean total chips committed on the CURRENT betting round.
@@ -148,13 +162,20 @@ function canAct(p) {
 }
 
 function nextSeat(players, after, predicate) {
-    for (let i = 1; i <= players.length; ++i) {
-        const index = (after + i) % players.length
+    const order = clockwiseOrder(players)
+    const position = order.indexOf(after)
+
+    for (let step = 1; step <= order.length; step++) {
+        const index =
+            order[(position + step) % order.length]
+
         if (predicate(players[index]))
             return index
     }
+
     return -1
 }
+
 
 function contenders(game) {
     return game.players.filter(isContender)
@@ -461,9 +482,16 @@ function settleShowdown(game, compareHands) {
         }
 
         // Odd chips go to the first winning seat left of the dealer.
+        const order = clockwiseOrder(s.players)
+        const dealerPosition = order.indexOf(s.dealerIndex)
+
+        const distance = id =>
+            (order.indexOf(id) - dealerPosition +
+             order.length - 1) % order.length
+
         winningIds.sort((a, b) =>
-            ((a - s.dealerIndex + s.players.length - 1) % s.players.length) -
-            ((b - s.dealerIndex + s.players.length - 1) % s.players.length))
+            distance(a) - distance(b)
+        )
 
         if (winningIds.length === 0)
             throw new Error("Side pot has no eligible winners")

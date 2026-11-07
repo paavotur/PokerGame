@@ -20,6 +20,7 @@ Item {
 
     property string seatName: ""
     property int labelHeight: 24
+    property bool activeTurn: false
 
     signal cardClicked(int cardIndex)
 
@@ -109,6 +110,7 @@ Item {
     }
 
     PokerChip {
+        id: seatChip
         width: root.chipSize
         height: root.chipSize
         amount: root.player ? root.player.chips : 0
@@ -122,4 +124,21 @@ Item {
            ? cardsRow.y + root.cardsHeight + root.chipGap
            : cardsRow.y + (root.cardsHeight - height) / 2
     }
+
+
+    Rectangle {
+        anchors.centerIn: seatChip
+
+        width: seatChip.width + 8
+        height: seatChip.height + 8
+        radius: width / 2
+
+        color: "transparent"
+        border.color: "#FFD700"
+        border.width: 3
+
+        visible: root.activeTurn
+        z: 1
+    }
+
 }

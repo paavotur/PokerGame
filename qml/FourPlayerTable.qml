@@ -220,6 +220,11 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 12
+
+        activeTurn: root.game.turnIndex === 1 &&
+                    (root.game.phase === "betting1" ||
+                     root.game.phase === "betting2")
+
     }
 
     PlayerSeat {
@@ -241,6 +246,10 @@ Rectangle {
         anchors.left: parent.left
         anchors.leftMargin: 22
         anchors.verticalCenter: parent.verticalCenter
+
+        activeTurn: root.game.turnIndex === 2 &&
+                    (root.game.phase === "betting1" ||
+                     root.game.phase === "betting2")
     }
 
     PlayerSeat {
@@ -262,6 +271,10 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 22
         anchors.verticalCenter: parent.verticalCenter
+
+        activeTurn: root.game.turnIndex === 3 &&
+                    (root.game.phase === "betting1" ||
+                     root.game.phase === "betting2")
     }
 
     Text {
@@ -289,6 +302,10 @@ Rectangle {
         anchors.bottom: controlsArea.top
         anchors.bottomMargin: 18
         onCardClicked: cardIndex => root.toggleCard(cardIndex)
+
+        activeTurn: root.game.turnIndex === 0 &&
+                    (root.game.phase === "betting1" ||
+                     root.game.phase === "betting2")
     }
 
     Item {

@@ -1,0 +1,198 @@
+diff --git a/qml/FourPlayerTable.qml b/qml/FourPlayerTable.qml
+index 9e7a750..de86811 100644
+--- a/qml/FourPlayerTable.qml
++++ b/qml/FourPlayerTable.qml
+@@ -220,6 +220,11 @@ Rectangle {
+         anchors.horizontalCenter: parent.horizontalCenter
+         anchors.top: parent.top
+         anchors.topMargin: 12
++
++        activeTurn: root.game.turnIndex === 1 &&
++                    (root.game.phase === "betting1" ||
++                     root.game.phase === "betting2")
++
+     }
+ 
+     PlayerSeat {
+@@ -241,6 +246,10 @@ Rectangle {
+         anchors.left: parent.left
+         anchors.leftMargin: 22
+         anchors.verticalCenter: parent.verticalCenter
++
++        activeTurn: root.game.turnIndex === 2 &&
++                    (root.game.phase === "betting1" ||
++                     root.game.phase === "betting2")
+     }
+ 
+     PlayerSeat {
+@@ -262,6 +271,10 @@ Rectangle {
+         anchors.right: parent.right
+         anchors.rightMargin: 22
+         anchors.verticalCenter: parent.verticalCenter
++
++        activeTurn: root.game.turnIndex === 3 &&
++                    (root.game.phase === "betting1" ||
++                     root.game.phase === "betting2")
+     }
+ 
+     Text {
+@@ -289,6 +302,10 @@ Rectangle {
+         anchors.bottom: controlsArea.top
+         anchors.bottomMargin: 18
+         onCardClicked: cardIndex => root.toggleCard(cardIndex)
++
++        activeTurn: root.game.turnIndex === 0 &&
++                    (root.game.phase === "betting1" ||
++                     root.game.phase === "betting2")
+     }
+ 
+     Item {
+diff --git a/qml/MultiplayerEngine.js b/qml/MultiplayerEngine.js
+index 9f2cf94..f386e0b 100644
+--- a/qml/MultiplayerEngine.js
++++ b/qml/MultiplayerEngine.js
+@@ -67,13 +67,18 @@ function createGame(playerCount = 4, startingChips = 1000,
+     }
+ }
+ 
++function clockwiseOrder(players) {
++    return [0, 2, 1, 3].filter(
++        id => id < players.length
++    )
++}
++
+ function nextActivePlayer(players, previousIndex) {
+-    for (let step = 1; step <= players.length; step++) {
+-        const index = (previousIndex + step) % players.length
+-        if (players[index].inHand)
+-            return index
+-    }
+-    return -1
++    return nextSeat(
++        players,
++        previousIndex,
++        p => p.inHand
++    )
+ }
+ 
+ function startHand(game) {
+@@ -98,23 +103,17 @@ function startHand(game) {
+     next.lastPot = 0
+     next.deck = shuffleDeck(createDeck())
+ 
+-    for (const player of next.players) {
+-        player.hand = []
+-        player.inHand = player.chips >= next.ante
+-        player.folded = false
+-        player.roundBet = 0
+-        player.totalCommitted = 0
+-        player.acted = false
+-        player.drawn = false
+-        player.allIn = false
+-
+-        if (!player.inHand)
+-            continue
+-
+-        player.chips -= next.ante
+-        player.totalCommitted = next.ante
+-        player.allIn = player.chips === 0
+-        next.pot += next.ante
++    const order = clockwiseOrder(next.players)
++    const dealerPosition = order.indexOf(next.dealerIndex)
++
++    for (let cardNumber = 0; cardNumber < 5; cardNumber++) {
++        for (let offset = 1; offset <= order.length; offset++) {
++            const index =
++                order[(dealerPosition + offset) % order.length]
++
++            if (next.players[index].inHand)
++                next.players[index].hand.push(next.deck.pop())
++        }
+     }
+ 
+     // Rotate the dealer among players who can join the hand.
+@@ -148,14 +147,21 @@ function canAct(p) {
+ }
+ 
+ function nextSeat(players, after, predicate) {
+-    for (let i = 1; i <= players.length; ++i) {
+-        const index = (after + i) % players.length
++    const order = clockwiseOrder(players)
++    const position = order.indexOf(after)
++
++    for (let step = 1; step <= order.length; step++) {
++        const index =
++            order[(position + step) % order.length]
++
+         if (predicate(players[index]))
+             return index
+     }
++
+     return -1
+ }
+ 
++
+ function contenders(game) {
+     return game.players.filter(isContender)
+ }
+@@ -461,9 +467,16 @@ function settleShowdown(game, compareHands) {
+         }
+ 
+         // Odd chips go to the first winning seat left of the dealer.
++        const order = clockwiseOrder(s.players)
++        const dealerPosition = order.indexOf(s.dealerIndex)
++
++        const distance = id =>
++            (order.indexOf(id) - dealerPosition +
++             order.length - 1) % order.length
++
+         winningIds.sort((a, b) =>
+-            ((a - s.dealerIndex + s.players.length - 1) % s.players.length) -
+-            ((b - s.dealerIndex + s.players.length - 1) % s.players.length))
++            distance(a) - distance(b)
++        )
+ 
+         if (winningIds.length === 0)
+             throw new Error("Side pot has no eligible winners")
+diff --git a/qml/PlayerSeat.qml b/qml/PlayerSeat.qml
+index e294cb1..09cacee 100644
+--- a/qml/PlayerSeat.qml
++++ b/qml/PlayerSeat.qml
+@@ -20,6 +20,7 @@ Item {
+ 
+     property string seatName: ""
+     property int labelHeight: 24
++    property bool activeTurn: false
+ 
+     signal cardClicked(int cardIndex)
+ 
+@@ -109,6 +110,7 @@ Item {
+     }
+ 
+     PokerChip {
++        id: seatChip
+         width: root.chipSize
+         height: root.chipSize
+         amount: root.player ? root.player.chips : 0
+@@ -122,4 +124,21 @@ Item {
+            ? cardsRow.y + root.cardsHeight + root.chipGap
+            : cardsRow.y + (root.cardsHeight - height) / 2
+     }
++
++
++    Rectangle {
++        anchors.centerIn: seatChip
++
++        width: seatChip.width + 8
++        height: seatChip.height + 8
++        radius: width / 2
++
++        color: "transparent"
++        border.color: "#FFD700"
++        border.width: 3
++
++        visible: root.activeTurn
++        z: 1
++    }
++
+ }
