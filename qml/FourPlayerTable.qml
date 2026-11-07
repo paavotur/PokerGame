@@ -16,6 +16,7 @@ Rectangle {
     property bool revealComputer: false
     property string winnerText: ""
     property string errorText: ""
+    property var lastActions: ["", "", "", ""]
 
     readonly property bool playerCanDraw:
         game.phase === "draw" && game.players[0].inHand &&
@@ -41,6 +42,7 @@ Rectangle {
         revealComputer = false
         winnerText = ""
         errorText = ""
+        lastActions = ["", "", "", ""]
 
         game = Engine.startHand(game)
         advanceGame()
@@ -66,10 +68,23 @@ Rectangle {
     function playerAction(action, amount) {
         if (game.turnIndex !== 0)
             return
+
         try {
-            game = Engine.applyBettingAction(game, action, amount)
+            const before = game
+
+            const next = Engine.applyBettingAction(
+                before, action, amount
+            )
+
+            setPlayerAction(
+                0,
+                describeAction(before, next, 0, action, amount)
+            )
+
+            game = next
             errorText = ""
             advanceGame()
+
         } catch (error) {
             errorText = String(error)
             console.log(errorText)
@@ -80,7 +95,13 @@ Rectangle {
         if (!playerCanDraw)
             return
         try {
+            const count = selectedIndices.length
             game = Engine.drawCards(game, 0, selectedIndices)
+
+            setPlayerAction(
+                0,
+                count === 0 ? "Stand pat" : "Draw " + count
+            )
             selectedIndices = []
             startComputerDraw()
         } catch (error) {
@@ -116,6 +137,12 @@ Rectangle {
                 if (p.inHand && !p.folded && !p.drawn)
                     next = Engine.drawCards(next, i,
                         computerSelections[i] || [])
+                        const count = (computerSelections[i] || []).length
+
+                        setPlayerAction(
+                            i,
+                            count === 0 ? "Stand pat" : "Draw " + count
+                        )
             }
             game = Engine.completeDraw(next)
             computerSelections = ({})
@@ -129,13 +156,36 @@ Rectangle {
 
     function playComputerTurn() {
         if (game.turnIndex <= 0 ||
-            (game.phase !== "betting1" && game.phase !== "betting2"))
+            (game.phase !== "betting1" &&
+             game.phase !== "betting2"))
             return
+
         try {
+            const playerId = game.turnIndex
+            const before = game
+
             const decision = PokerAI.chooseBettingAction(game)
-            game = Engine.applyBettingAction(
-                game, decision.action, decision.amount)
+
+            const next = Engine.applyBettingAction(
+                before,
+                decision.action,
+                decision.amount
+            )
+
+            setPlayerAction(
+                playerId,
+                describeAction(
+                    before,
+                    next,
+                    playerId,
+                    decision.action,
+                    decision.amount
+                )
+            )
+
+            game = next
             advanceGame()
+
         } catch (error) {
             errorText = String(error)
             console.log(errorText)
@@ -173,9 +223,42 @@ Rectangle {
 
         if ((game.phase === "betting1" || game.phase === "betting2") &&
             game.turnIndex > 0) {
-            computerTurnTimer.interval = 500 + Math.floor(Math.random() * 1001)
+            computerTurnTimer.interval = 1200 + Math.floor(Math.random() * 601)
             computerTurnTimer.restart()
         }
+    }
+
+    function setPlayerAction(playerId, text) {
+        const actions = lastActions.slice()
+        actions[playerId] = text
+        lastActions = actions
+    }
+
+    function describeAction(before, after, playerId, action, amount) {
+        if (action === "check")
+            return "Check"
+
+        if (action === "fold")
+            return "Fold"
+
+        let description = ""
+
+        if (action === "call") {
+            const player = before.players[playerId]
+            const owed = before.currentBet - player.roundBet
+            const paid = Math.min(owed, player.chips)
+
+            description = "Call " + paid
+        } else if (action === "bet") {
+            description = "Bet " + amount
+        } else if (action === "raise") {
+            description = "Raise to " + amount
+        }
+
+        if (after.players[playerId].allIn)
+            description += " (All-in)"
+
+        return description
     }
 
     Timer {
@@ -205,6 +288,7 @@ Rectangle {
         id: topSeat
         seatName: "Player1"
         player: root.game.players[1]
+        lastAction: root.lastActions[1]
 
         chipPlacement: "right"
         discardDirection: "down"
@@ -231,6 +315,7 @@ Rectangle {
         id: leftSeat
         seatName: "Player2"
         player: root.game.players[2]
+        lastAction: root.lastActions[2]
 
         chipPlacement: "below"
         discardDirection: "right"
@@ -256,6 +341,7 @@ Rectangle {
         id: rightSeat
         seatName: "Player3"
         player: root.game.players[3]
+        lastAction: root.lastActions[3]
 
         chipPlacement: "below"
         discardDirection: "left"
@@ -291,6 +377,8 @@ Rectangle {
         id: humanSeat
         seatName: "Me"
         player: root.game.players[0]
+        lastAction: root.lastActions[0]
+
         human: true
         chipPlacement: "right"
         cardWidth: 62

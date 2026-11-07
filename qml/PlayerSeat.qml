@@ -21,6 +21,7 @@ Item {
     property string seatName: ""
     property int labelHeight: 24
     property bool activeTurn: false
+    property string lastAction: ""
 
     signal cardClicked(int cardIndex)
 
@@ -35,7 +36,15 @@ Item {
     height: implicitHeight
 
     Text {
-        text: root.seatName
+
+        textFormat: Text.RichText
+
+        text: root.seatName +
+              (root.lastAction !== ""
+               ? '  <font color="#FFE68B">· ' +
+                 root.lastAction + '</font>'
+               : "")
+
 
         x: cardsRow.x
         y: root.chipPlacement === "above"
