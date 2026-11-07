@@ -320,6 +320,30 @@ Rectangle {
         )
     }
 
+    function resetGame() {
+        // Stop pending computer actions
+        computerTurnTimer.stop()
+        computerDrawTimer.stop()
+        drawFinishTimer.stop()
+
+        // Reset game state
+        game = Engine.createGame()
+
+        selectedIndices = []
+        computerSelections = ({})
+        computerDrawing = false
+        revealComputer = false
+
+        chipsMoving = false
+        animatingPlayerId = -1
+
+        winnerText = ""
+        errorText = ""
+        lastActions = ["", "", "", ""]
+
+        potStack.amount = 0
+    }
+
         Timer {
         id: drawFinishTimer
         interval: 300
@@ -353,6 +377,25 @@ Rectangle {
         repeat: false
         onTriggered: root.finishComputerDraw()
     }
+
+
+    RoundActionButton {
+        text: "New\nGame"
+
+        width: 76
+        height: 76
+
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 15
+
+        z: 20
+
+        enabled: !root.chipsMoving && !root.computerDrawing
+
+        onClicked: root.resetGame()
+    }
+
 
     RoundActionButton {
         text: "?"
