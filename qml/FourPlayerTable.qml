@@ -34,6 +34,10 @@ Rectangle {
     readonly property int playersAbleToAnte:
         game.players.filter(p => p.chips >= game.ante).length
 
+    readonly property bool gameOver:
+        game.phase === "finished" &&
+        game.players[0].chips < game.ante
+
     readonly property int highlightedPlayerId:
         chipsMoving ? animatingPlayerId :
         computerDrawing ? computerDrawPlayerId :
@@ -43,6 +47,8 @@ Rectangle {
             ? game.turnIndex : -1
 
     function startNewHand() {
+        if (game.players[0].chips < game.ante)
+            return
         if (game.phase !== "ready" && game.phase !== "finished")
             return
         if (playersAbleToAnte < 2)
@@ -240,6 +246,12 @@ Rectangle {
         }
 
         if (game.phase === "finished") {
+
+            if (gameOver) {
+                winnerText = "GAME OVER"
+                return
+            }
+
             const winners = game.winnerIds.map(id =>
                 id === 0 ? "You" : "Player" + id
             )
@@ -586,6 +598,7 @@ Rectangle {
 
             visible: (root.game.phase === "ready" ||
                       root.game.phase === "finished") &&
+                     root.game.players[0].chips >= root.game.ante &&
                      root.playersAbleToAnte >= 2
 
             onClicked: root.startNewHand()
