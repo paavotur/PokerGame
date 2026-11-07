@@ -36,6 +36,7 @@ Rectangle {
 
         computerTurnTimer.stop()
         computerDrawTimer.stop()
+        drawFinishTimer.stop()
         selectedIndices = []
         computerSelections = ({})
         computerDrawing = false
@@ -144,10 +145,15 @@ Rectangle {
                             count === 0 ? "Stand pat" : "Draw " + count
                         )
             }
-            game = Engine.completeDraw(next)
+            // Replace cards, but remain in draw phase.
+            game = next
+
+            // Allow replacement cards to become visible.
             computerSelections = ({})
-            computerDrawing = false
-            advanceGame()
+
+            // Wait for the animation before advancing turns.
+            drawFinishTimer.restart()
+
         } catch (error) {
             errorText = String(error)
             console.log(errorText)
@@ -223,7 +229,7 @@ Rectangle {
 
         if ((game.phase === "betting1" || game.phase === "betting2") &&
             game.turnIndex > 0) {
-            computerTurnTimer.interval = 1200 + Math.floor(Math.random() * 601)
+            computerTurnTimer.interval = 1000 + Math.floor(Math.random() * 401)
             computerTurnTimer.restart()
         }
     }
@@ -261,6 +267,27 @@ Rectangle {
         return description
     }
 
+        Timer {
+        id: drawFinishTimer
+        interval: 300
+        repeat: false
+
+        onTriggered: {
+            if (!root.computerDrawing ||
+                root.game.phase !== "draw")
+                return
+
+            try {
+                root.game = Engine.completeDraw(root.game)
+                root.computerDrawing = false
+                root.advanceGame()
+            } catch (error) {
+                root.errorText = String(error)
+                console.log(root.errorText)
+            }
+        }
+    }
+
     Timer {
         id: computerTurnTimer
         repeat: false
@@ -269,7 +296,7 @@ Rectangle {
 
     Timer {
         id: computerDrawTimer
-        interval: 1000
+        interval: 650
         repeat: false
         onTriggered: root.finishComputerDraw()
     }
