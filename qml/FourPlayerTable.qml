@@ -604,13 +604,6 @@ Rectangle {
             onClicked: root.startNewHand()
         }
 
-        RoundActionButton {
-            anchors.centerIn: parent
-            text: "New Game"
-            visible: root.game.phase === "finished" &&
-                     root.playersAbleToAnte < 2
-            onClicked: root.newGame()
-        }
     }
 
     Text {
