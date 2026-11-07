@@ -444,7 +444,10 @@ Rectangle {
     PotStack {
         id: potStack
 
-        anchors.fill: parent
+        width: 156
+        height: 138
+
+        anchors.centerIn: parent
         z: 10
 
         showPile: root.game.phase !== "ready" &&

@@ -9,41 +9,63 @@ Item {
     property int nextAmount: 0
     property var finishCallback: null
 
-    // Three overlapping poker chips in the center.
+    // Four overlapping poker chips in the center.
     Item {
         id: pile
-
-        width: 110
-        height: 95
-        anchors.centerIn: parent
+        anchors.fill: parent
         visible: root.showPile
 
+        readonly property int chipSize: 68
+
+        // Back chip
         PokerChip {
-            x: 0
-            y: 18
-            width: 72
-            height: 72
+            width: pile.chipSize
+            height: pile.chipSize
+
+            x: (pile.width - width) / 2
+            y: (pile.height - height) / 2 - 23
+
             showAmount: false
         }
 
+        // Bottom-left chip
         PokerChip {
-            x: 26
-            y: 16
-            width: 72
-            height: 72
+            width: pile.chipSize
+            height: pile.chipSize
+
+            x: (pile.width - width) / 2 - 30
+            y: (pile.height - height) / 2 + 20
+
+            rotation: -12
             showAmount: false
         }
 
+        // Bottom-right chip
         PokerChip {
-            x: 14
-            y: 0
-            width: 72
-            height: 72
+            width: pile.chipSize
+            height: pile.chipSize
+
+            x: (pile.width - width) / 2 + 30
+            y: (pile.height - height) / 2 + 20
+
+            rotation: 12
+            showAmount: false
+        }
+
+        // Top chip displays the pot amount
+        PokerChip {
+            id: topChip
+
+            width: pile.chipSize
+            height: pile.chipSize
+
+            anchors.centerIn: parent
 
             amount: root.amount
             showAmount: true
         }
     }
+
 
     // The chip moving from a player toward the pot.
     PokerChip {
@@ -86,7 +108,8 @@ Item {
             target: flyingChip
             property: "x"
 
-            to: pile.x + 14 + (72 - flyingChip.width) / 2
+            to: topChip.x +
+                (topChip.width - flyingChip.width) / 2
 
             duration: 450
             easing.type: Easing.InOutCubic
@@ -96,7 +119,8 @@ Item {
             target: flyingChip
             property: "y"
 
-            to: pile.y + (72 - flyingChip.height) / 2
+            to: topChip.y +
+                (topChip.height - flyingChip.height) / 2
 
             duration: 450
             easing.type: Easing.InOutCubic
