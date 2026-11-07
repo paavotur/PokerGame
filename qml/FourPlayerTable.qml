@@ -316,6 +316,7 @@ Rectangle {
         seatName: "Player1"
         player: root.game.players[1]
         lastAction: root.lastActions[1]
+        isDealer: root.game.dealerIndex === 1
 
         chipPlacement: "right"
         discardDirection: "down"
@@ -343,6 +344,7 @@ Rectangle {
         seatName: "Player2"
         player: root.game.players[2]
         lastAction: root.lastActions[2]
+        isDealer: root.game.dealerIndex === 2
 
         chipPlacement: "below"
         discardDirection: "right"
@@ -369,6 +371,7 @@ Rectangle {
         seatName: "Player3"
         player: root.game.players[3]
         lastAction: root.lastActions[3]
+        isDealer: root.game.dealerIndex === 3
 
         chipPlacement: "below"
         discardDirection: "left"
@@ -405,6 +408,7 @@ Rectangle {
         seatName: "Me"
         player: root.game.players[0]
         lastAction: root.lastActions[0]
+        isDealer: root.game.dealerIndex === 0
 
         human: true
         chipPlacement: "right"

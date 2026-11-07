@@ -22,6 +22,7 @@ Item {
     property int labelHeight: 24
     property bool activeTurn: false
     property string lastAction: ""
+    property bool isDealer: false
 
     signal cardClicked(int cardIndex)
 
@@ -144,7 +145,6 @@ Item {
            : cardsRow.y + (root.cardsHeight - height) / 2
     }
 
-
     Rectangle {
         anchors.centerIn: seatChip
 
@@ -158,6 +158,33 @@ Item {
 
         visible: root.activeTurn
         z: 1
+    }
+
+    Rectangle {
+        id: dealerButton
+
+        width: 26
+        height: 26
+        radius: width / 2
+
+        x: seatChip.x + seatChip.width - width * 0.65
+        y: seatChip.y - height * 0.35
+
+        color: "white"
+        border.color: "black"
+        border.width: 2
+
+        visible: root.isDealer
+        z: 2
+
+        Text {
+            anchors.centerIn: parent
+
+            text: "D"
+            color: "black"
+            font.pixelSize: 16
+            font.bold: true
+        }
     }
 
 }
