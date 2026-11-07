@@ -18,6 +18,9 @@ Rectangle {
     property string errorText: ""
     property var lastActions: ["", "", "", ""]
 
+    property bool chipsMoving: false
+    property int animatingPlayerId: -1
+
     readonly property bool playerCanDraw:
         game.phase === "draw" && game.players[0].inHand &&
         !game.players[0].folded && !game.players[0].drawn &&
@@ -27,10 +30,22 @@ Rectangle {
         game.players.filter(p => p.chips >= game.ante).length
 
 
+    readonly property int highlightedPlayerId:
+        chipsMoving
+            ? animatingPlayerId
+            : (game.phase === "betting1" ||
+               game.phase === "betting2")
+                ? game.turnIndex
+                : -1
+
+
+
     function startNewHand() {
         if (game.phase !== "ready" && game.phase !== "finished")
             return
         if (playersAbleToAnte < 2)
+            return
+        if (chipsMoving)
             return
 
         computerTurnTimer.stop()
@@ -45,6 +60,7 @@ Rectangle {
         lastActions = ["", "", "", ""]
 
         game = Engine.startHand(game)
+        potStack.amount = game.pot
         advanceGame()
     }
 
@@ -54,7 +70,7 @@ Rectangle {
     }
 
     function toggleCard(index) {
-        if (!playerCanDraw)
+        if (!root.chipsMoving && !playerCanDraw)
             return
         const indices = selectedIndices.slice()
         const at = indices.indexOf(index)
@@ -66,7 +82,7 @@ Rectangle {
     }
 
     function playerAction(action, amount) {
-        if (game.turnIndex !== 0)
+        if (game.turnIndex !== 0 || chipsMoving)
             return
 
         try {
@@ -81,9 +97,11 @@ Rectangle {
                 describeAction(before, next, 0, action, amount)
             )
 
-            game = next
             errorText = ""
-            advanceGame()
+
+            // Animate chips moving to the pot.
+            // The next turn starts after the animation.
+            animateBettingAction(0, before, next)
 
         } catch (error) {
             errorText = String(error)
@@ -92,7 +110,7 @@ Rectangle {
     }
 
     function drawPlayerCards() {
-        if (!playerCanDraw)
+        if (!root.chipsMoving && !playerCanDraw)
             return
         try {
             const count = selectedIndices.length
@@ -188,8 +206,7 @@ Rectangle {
                 )
             )
 
-            game = next
-            advanceGame()
+            animateBettingAction(playerId, before, next)
 
         } catch (error) {
             errorText = String(error)
@@ -221,7 +238,7 @@ Rectangle {
 
         if (game.phase === "draw") {
             // If human folded, complete drawing for computer players automatically.
-            if (!playerCanDraw && !computerDrawing)
+            if (!root.chipsMoving && !playerCanDraw && !computerDrawing)
                 startComputerDraw()
             return
         }
@@ -264,6 +281,43 @@ Rectangle {
             description += " (All-in)"
 
         return description
+    }
+
+    function animateBettingAction(playerId, before, after) {
+        // How many chips did this player actually pay?
+        const paid = before.players[playerId].chips -
+                     after.players[playerId].chips
+
+        if (paid > 0) {
+            chipsMoving = true
+            animatingPlayerId = playerId
+        }
+
+        game = after
+
+        if (paid <= 0) {
+            // Check or Fold: no chips to animate.
+            potStack.amount = after.pot
+            advanceGame()
+            return
+        }
+
+        const seats = [
+            humanSeat,
+            topSeat,
+            leftSeat,
+            rightSeat
+        ]
+
+        potStack.flyFrom(
+            seats[playerId].chipVisual,
+            after.pot,
+            function() {
+                root.chipsMoving = false
+                root.animatingPlayerId = -1
+                root.advanceGame()
+            }
+        )
     }
 
         Timer {
@@ -315,7 +369,6 @@ Rectangle {
         seatName: "Player1"
         player: root.game.players[1]
         lastAction: root.lastActions[1]
-        isDealer: root.game.dealerIndex === 1
 
         chipPlacement: "right"
         discardDirection: "down"
@@ -333,10 +386,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.topMargin: 12
 
-        activeTurn: root.game.turnIndex === 1 &&
-                    (root.game.phase === "betting1" ||
-                     root.game.phase === "betting2")
-
+        activeTurn: root.highlightedPlayerId === 1
     }
 
     PlayerSeat {
@@ -362,9 +412,7 @@ Rectangle {
         anchors.leftMargin: 22
         anchors.verticalCenter: parent.verticalCenter
 
-        activeTurn: root.game.turnIndex === 2 &&
-                    (root.game.phase === "betting1" ||
-                     root.game.phase === "betting2")
+        activeTurn: root.highlightedPlayerId === 2
     }
 
     PlayerSeat {
@@ -390,20 +438,26 @@ Rectangle {
         anchors.rightMargin: 22
         anchors.verticalCenter: parent.verticalCenter
 
-        activeTurn: root.game.turnIndex === 3 &&
-                    (root.game.phase === "betting1" ||
-                     root.game.phase === "betting2")
+        activeTurn: root.highlightedPlayerId === 3
+    }
+
+    PotStack {
+        id: potStack
+
+        anchors.fill: parent
+        z: 10
+
+        showPile: root.game.phase !== "ready" &&
+                  root.winnerText === ""
     }
 
     Text {
         anchors.centerIn: parent
-        width: 300
-        horizontalAlignment: Text.AlignHCenter
-        text: root.game.phase === "ready"
-              ? ""
-              : root.winnerText !== ""
-                ? root.winnerText
-                : "POT: " + root.game.pot
+        z: 11
+
+        text: root.winnerText
+        visible: text !== ""
+
         color: "#ffe99a"
         font.pixelSize: 26
         font.bold: true
@@ -430,9 +484,7 @@ Rectangle {
         anchors.bottomMargin: 18
         onCardClicked: cardIndex => root.toggleCard(cardIndex)
 
-        activeTurn: root.game.turnIndex === 0 &&
-                    (root.game.phase === "betting1" ||
-                     root.game.phase === "betting2")
+        activeTurn: root.highlightedPlayerId === 0
     }
 
     Item {

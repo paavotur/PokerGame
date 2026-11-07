@@ -25,6 +25,7 @@ Item {
     property bool isDealer: false
 
     signal cardClicked(int cardIndex)
+    property alias chipVisual: seatChip
 
     readonly property int cardsWidth: 5 * cardWidth + 4 * cardSpacing
     readonly property int cardsHeight: cardHeight + 14

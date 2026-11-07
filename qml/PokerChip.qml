@@ -5,6 +5,7 @@ Item {
     id: root
 
     property int amount: 0
+    property bool showAmount: true
 
     width: 100
     height: 100
@@ -93,6 +94,7 @@ Item {
     Text {
         anchors.centerIn: parent
         text: root.amount
+        visible: root.showAmount
 
         color: "black"
         font.bold: true
