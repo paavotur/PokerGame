@@ -113,15 +113,40 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            RoundActionButton {
-                text: "OK"
-                enabled: root.validAmount
+            RowLayout {
+                spacing: 12
                 Layout.alignment: Qt.AlignHCenter
-                onClicked: {
-                    const amount = root.enteredAmount
-                    const action = root.pendingAction
-                    amountPopup.close()
-                    root.actionRequested(action, amount)
+
+                RoundActionButton {
+                    text: root.myTurn &&
+                          root.maximum ===
+                          root.gameState.players[0].roundBet +
+                          root.gameState.players[0].chips
+                          ? "All-in" : "Max"
+
+                    enabled: root.myTurn &&
+                             root.actions.includes(root.pendingAction)
+
+                    onClicked: {
+                        const action = root.pendingAction
+                        const amount = root.maximum
+
+                        amountPopup.close()
+                        root.actionRequested(action, amount)
+                    }
+                }
+
+                RoundActionButton {
+                    text: "OK"
+                    enabled: root.validAmount
+
+                    onClicked: {
+                        const action = root.pendingAction
+                        const amount = root.enteredAmount
+
+                        amountPopup.close()
+                        root.actionRequested(action, amount)
+                    }
                 }
             }
         }
