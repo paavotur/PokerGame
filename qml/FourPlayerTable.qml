@@ -440,7 +440,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.margins: 16
-        onClicked: rankingsPopup.open()
+        onClicked: pokerRulesPopup.open()
     }
 
     PlayerSeat {
@@ -614,45 +614,12 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
-    Popup {
-        id: rankingsPopup
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        modal: true
-        focus: true
-        width: 300
-        padding: 20
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle {
-            color: "white"
-            radius: 12
-            border.color: "black"
-            border.width: 1
-        }
-        contentItem: ColumnLayout {
-            spacing: 10
-            Label {
-                text: "POKER HAND RANKINGS"
-                font.bold: true
-                font.pixelSize: 18
-                color: "black"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Repeater {
-                model: [
-                    "1. Royal Flush", "2. Straight Flush",
-                    "3. Four of a Kind", "4. Full House",
-                    "5. Flush", "6. Straight",
-                    "7. Three of a Kind", "8. Two Pair",
-                    "9. One Pair", "10. High Card"
-                ]
-                delegate: Label {
-                    required property string modelData
-                    text: modelData
-                    color: "black"
-                    Layout.fillWidth: true
-                }
-            }
-        }
+
+    PokerRulesPopup {
+        id: pokerRulesPopup
+
+        ante: root.game.ante
+        minBet: root.game.minBet
     }
+
 }
